@@ -29,8 +29,6 @@ return(
       <button className={mode === "business" ? "on" : ""}onClick={() => { setMode("business"); setResults(null); }}>取引先へのお礼 </button>
     </nav>
 
-    <p className="summary">※いまはサンプル表示です。入力は2週目から効きます。</p>
-
     <form className="form" onSubmit={onSearch}>
       {mode === "standard" ? (
         <>
@@ -44,13 +42,27 @@ return(
         </>
       ) : (
         <>
-          <label className="chk"><input type="checkbox" /> 個包装</label>
+          <input
+            className="q"
+            value={keyword}
+            onChange={(e) => setkeyword(e.target.value)}
+            placeholder="キーワード（例：焼き菓子 コーヒー）"
+          />
           <select>
             <option value="">すべての価格帯</option>
             <option value="3000">3,000〜5,000円</option>
-            <option value="5000">5,000～10,000円</option>
+            <option value="5000">5,000〜10,000円</option>
           </select>
-        </>    
+
+          {/* 外さない4条件（見た目だけ。動きは後で付ける） */}
+          <div className="conds" role="group" aria-label="外さない条件">
+            <span className="condsLabel">外さない条件</span>
+            <label className="pill"><input type="checkbox" />会社宛てに送れる</label>
+            <label className="pill"><input type="checkbox" />常温で置ける</label>
+            <label className="pill"><input type="checkbox" />個包装</label>
+            <label className="pill"><input type="checkbox" />日持ち30日以上</label>
+          </div>
+        </>
       )}
       <button type="submit">検索</button>
     </form>
