@@ -1,11 +1,9 @@
-# main.py — Giftia 検索API（2週目・穴埋め版）
-# 【穴1】〜【穴4】を、対応表と公式ドキュメント・データ定義.md を頼りに自分で埋める。
-# 埋めるまでは ___ が残っていて動かない（/api/search を呼ぶと 500 になり、ターミナルに NameError と行番号が出る）。
-# 答えは 配布コード/答え合わせ/backend/main.py（自分で埋めてから見る）。
+# main.py — Giftia 検索API（B担当・段階1：固定データ版（B-3・コミット①））
+# DBを見ずに、約束の形のJSONを返す。Cが画面を作れるように、先に作る。
+# このファイルは、全部を置き換えて使う（Ctrl+A → 貼り付け → 保存）。
+# 起動：uvicorn main:app --reload　　確認：http://localhost:8000/docs
 #
-# 画面（Next.js）から呼ばれる「窓口」。条件を受け取り、班のDBを検索して、結果を JSON で返す。
-# 起動：uvicorn main:app --reload
-# 確認：http://localhost:8000/docs（Swagger UI。ブラウザから API を試せる）
+# ─── ここから下の「2週目の部分」（/api/health・/api/search・to_gift）は、配布の答えと同じ ───
 
 import os
 
@@ -23,8 +21,12 @@ app = FastAPI(title="Giftia Search API（2週目）")
 # 画面（http://localhost:3000）と API（http://localhost:8000）は別のアプリ＝オリジンが違う。
 # ブラウザは既定で「別オリジンへの通信」を止めるので、API 側が「この画面からは受け付ける」と宣言する。
 # 許可する画面の URL は .env の CORS_ORIGINS に書く（カンマ区切りで複数可）。空なら何も許可しない。
-origins = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()]
-app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["GET"], allow_headers=["*"])
+origins = [
+    o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()
+]
+app.add_middleware(
+    CORSMiddleware, allow_origins=origins, allow_methods=["GET"], allow_headers=["*"]
+)
 
 
 @app.get("/api/health")
@@ -36,9 +38,13 @@ def health():
 
 @app.get("/api/search")
 def search(
-    q: str = Query(default="", description="キーワード（空白区切りで複数。すべてを含む商品）"),
+    q: str = Query(
+        default="", description="キーワード（空白区切りで複数。すべてを含む商品）"
+    ),
     category: str = Query(default="", description="カテゴリー（空ならすべて）"),
-    indiv_wrap: bool = Query(default=False, description="true なら、説明文に「個包装」とある商品だけ"),
+    indiv_wrap: bool = Query(
+        default=False, description="true なら、説明文に「個包装」とある商品だけ"
+    ),
     price_min: int | None = Query(default=None, ge=0, description="価格の下限（以上）"),
     price_max: int | None = Query(default=None, ge=0, description="価格の上限（以下）"),
     limit: int = Query(default=20, ge=1, le=100, description="返す件数"),
@@ -46,15 +52,17 @@ def search(
     """条件に合う商品を、人気順（直近1年の販売数）で上位 limit 件返す"""
     # ① 条件を WHERE に1つずつ足す（値は %s で渡し、SQL の文字列に直接つなげない）
     where, params = ["stock > 0"], []  # 在庫切れは出さない
-    for word in q.split():  # 【穴1】q を空白で区切って1語ずつにする（文字列のメソッド）
+    for word in q.split():
         where.append("(product_name LIKE %s OR brand LIKE %s OR description LIKE %s)")
         params += [f"%{word}%"] * 3
     if category:
         where.append("category = %s")
-        params.append(category)  # 【穴2】%s に入れる値（受け取ったカテゴリー）
+        params.append(category)
     if indiv_wrap:
-        where.append("description LIKE %s")  # 「個包装」は列がないので、説明文に書いてあるかで見る
-        params.append("%個包装%")  # 【穴3】「個包装」をどこかに含む、という LIKE のパターン
+        where.append(
+            "description LIKE %s"
+        )  # 「個包装」は列がないので、説明文に書いてあるかで見る
+        params.append("%個包装%")
     if price_min is not None:
         where.append("price >= %s")
         params.append(price_min)
@@ -64,7 +72,9 @@ def search(
     condition = " AND ".join(where)
 
     # ② 件数と、人気順の上位 limit 件を取る
-    total = fetch_all(f"SELECT COUNT(*) AS n FROM products WHERE {condition}", tuple(params))[0]["n"]
+    total = fetch_all(
+        f"SELECT COUNT(*) AS n FROM products WHERE {condition}", tuple(params)
+    )[0]["n"]
     rows = fetch_all(
         f"""SELECT product_id, category, brand, product_name, price, rating, review_count
             FROM products WHERE {condition}
@@ -82,8 +92,73 @@ def to_gift(r: dict) -> dict:
         "id": r["product_id"],
         "category": r["category"],
         "brand": r["brand"],
-        "name": r["product_name"],  # 【穴4】商品名の列名（データ定義.md の products を見る）
+        "name": r["product_name"],
         "price": r["price"],
-        "rating": float(r["rating"]) if r["rating"] is not None else 0,  # レビューなしは 0
+        "rating": float(r["rating"])
+        if r["rating"] is not None
+        else 0,  # レビューなしは 0
         "reviewCount": r["review_count"],
+    }
+
+
+# ─── ここから下が、まさが足す部分（段階1：固定データ版。B-5 で段階2 に置き換える）───
+
+
+@app.get("/api/business/search")
+def business_search(
+    company_delivery: bool = Query(default=False),
+    room_temp: bool = Query(default=False),
+    individual_wrap: bool = Query(default=False),
+    shelf_life: bool = Query(default=False),
+    q: str = Query(default=""),
+    price_min: int | None = Query(default=None, ge=0),
+    price_max: int | None = Query(default=None, ge=0),
+):
+    """【仮】DBを見ずに、固定データを返す。B-5 で本物に差し替える"""
+    return {
+        "total": 1,
+        "appliedConditions": ["会社宛て配送", "常温"],
+        "message": "候補が少ないため、条件・キーワード・価格帯を見直してみてください。",
+        "results": [
+            {
+                "id": "G0011",
+                "category": "食品",
+                "brand": "Atelier Komugi",
+                "name": "焼き菓子アソート 15個入",
+                "price": 3980,
+                "rating": 4.5,
+                "reviewCount": 558,
+                "conditionResults": [
+                    {
+                        "key": "companyDelivery",
+                        "label": "会社宛て配送",
+                        "status": "ok",
+                        "detail": None,
+                    },
+                    {
+                        "key": "roomTemp",
+                        "label": "常温",
+                        "status": "ok",
+                        "detail": None,
+                    },
+                    {
+                        "key": "individualWrap",
+                        "label": "個包装",
+                        "status": "unknown",
+                        "detail": None,
+                    },
+                    {
+                        "key": "shelfLife",
+                        "label": "日持ち",
+                        "status": "ok",
+                        "detail": "60日",
+                    },
+                ],
+                "reasons": [
+                    "会社宛てに配送できます",
+                    "常温で保存できます",
+                    "賞味期限まで60日あります",
+                ],
+            }
+        ],
     }
