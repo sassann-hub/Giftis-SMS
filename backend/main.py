@@ -86,7 +86,7 @@ def to_gift(r: dict) -> dict:
         "brand": r["brand"],
         "name": r["product_name"],
         "price": r["price"],
-        "rating": float(r["rating"]) if r["rating"] is not None else 0,  # レビューなしは 0
+        "rating": float(r["rating"]) if r["rating"] is not None else None,  # レビューなしは null（0にしない）   "rating": float(r["rating"]) if r["rating"] is not None else 0,  # レビューなしは 0
         "reviewCount": r["review_count"],
     }
  
