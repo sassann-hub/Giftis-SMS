@@ -18,3 +18,24 @@ body { margin:0; font-family:"Hiragino Sans","Yu Gothic","Meiryo",sans-serif; co
 .card .name { font-size:16px; margin:4px 0; }
 .card .price { font-size:18px; font-weight:700; margin:4px 0; }
 .card .meta { color:var(--sub); font-size:13px; margin:2px 0; }
+/* ── ここから globals.css の一番下に足す：取引先お礼タブの4条件と印 ── */
+.conds {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center; width: 100%;
+}
+.condsLabel { font-size: 13px; color: var(--sub); }
+.pill {
+  display: flex; align-items: center; gap: 4px; font-size: 14px;
+  padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px;
+  background: #fff; cursor: pointer;
+}
+.bizItem .card { border-bottom: none; border-radius: 10px 10px 0 0; }
+.marks {
+  border: 1px solid var(--line); border-top: 1px dashed var(--line);
+  border-radius: 0 0 10px 10px; background: #fff; padding: 8px 14px 12px;
+}
+.marks ul { list-style: none; margin: 4px 0; padding: 0; font-size: 14px; }
+.marks p { margin: 8px 0 2px; font-size: 13px; color: var(--sub); }
+.notice {
+  background: #fff8e1; border: 1px solid #f0d98c; border-radius: 6px;
+  padding: 8px 12px; font-size: 14px; margin: 8px 0;
+}
